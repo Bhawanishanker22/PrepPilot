@@ -1,5 +1,6 @@
 package com.preppilot.backend.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;
@@ -18,6 +19,7 @@ public class MockInterview {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "password"})
     private User user;
 
     @Column(name = "job_position", nullable = false, length = 100)
