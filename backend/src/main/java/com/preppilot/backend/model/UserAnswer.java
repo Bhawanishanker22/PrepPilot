@@ -17,9 +17,9 @@ public class UserAnswer {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "interview_id", nullable = false)
-    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "user"})
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "user", "answers"})
     private MockInterview interview;
 
     @Column(nullable = false, columnDefinition = "TEXT")

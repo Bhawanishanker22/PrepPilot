@@ -2,7 +2,6 @@ package com.preppilot.backend.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -12,7 +11,6 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 
 @Service
-@RequiredArgsConstructor
 public class GeminiService {
 
     @Value("${gemini.api.key}")
@@ -28,67 +26,62 @@ public class GeminiService {
         String prompt = String.format("""
                 You are an expert technical interviewer.
                 Generate exactly 5 interview questions for the following role:
-                
+
                 Job Position: %s
                 Job Description: %s
                 Experience Level: %s
-                
+
                 Return ONLY a valid JSON array with exactly 5 objects, each having:
                 - "question": the interview question
                 - "hint": a brief hint about what a good answer should cover
-                
-                Example format:
-                [
-                  {"question": "...", "hint": "..."},
-                  {"question": "...", "hint": "..."}
-                ]
-                
-                Return only the JSON array, no other text.
+
+                Return only the JSON array, no other text, no markdown.
                 """, jobPosition, jobDescription, experienceLevel);
 
-        return callGemini(prompt);
+        return callAI(prompt);
     }
 
     public String generateFeedback(String question, String userAnswer, String jobPosition) {
         String prompt = String.format("""
                 You are an expert technical interviewer evaluating a candidate's answer.
-                
+
                 Job Position: %s
                 Question: %s
                 Candidate's Answer: %s
-                
+
                 Evaluate the answer and return ONLY a valid JSON object with:
                 - "feedback": detailed constructive feedback (2-3 sentences)
                 - "rating": a score from 1 to 10 (integer only)
                 - "idealAnswer": what an ideal answer would include (1-2 sentences)
-                
-                Return only the JSON object, no other text.
+
+                Return only the JSON object, no other text, no markdown.
                 """, jobPosition, question, userAnswer);
 
-        return callGemini(prompt);
+        return callAI(prompt);
     }
 
-    private String callGemini(String prompt) {
+    private String callAI(String prompt) {
         try {
-            String requestBody = String.format("""
-                {
-                  "contents": [
-                    {
-                      "parts": [
-                        {"text": %s}
-                      ]
-                    }
-                  ],
-                  "generationConfig": {
-                    "temperature": 0.7,
-                    "maxOutputTokens": 2048
-                  }
-                }
-                """, objectMapper.writeValueAsString(prompt));
+            String requestBody = objectMapper.writeValueAsString(
+                    new java.util.HashMap<String, Object>() {{
+                        put("model", "llama-3.1-8b-instant");
+                        put("messages", new java.util.List[] {
+                                java.util.List.of(
+                                        new java.util.HashMap<String, String>() {{
+                                            put("role", "user");
+                                            put("content", prompt);
+                                        }}
+                                )
+                        }[0]);
+                        put("temperature", 0.7);
+                        put("max_tokens", 2048);
+                    }}
+            );
 
             HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create(apiUrl + "?key=" + apiKey))
+                    .uri(URI.create(apiUrl))
                     .header("Content-Type", "application/json")
+                    .header("Authorization", "Bearer " + apiKey)
                     .POST(HttpRequest.BodyPublishers.ofString(requestBody))
                     .build();
 
@@ -96,33 +89,27 @@ public class GeminiService {
                     HttpResponse.BodyHandlers.ofString());
 
             String responseBody = response.body();
-
-            // Log raw response for debugging
-            System.out.println("Gemini raw response: " + responseBody);
+            System.out.println("AI raw response: " + responseBody);
 
             JsonNode root = objectMapper.readTree(responseBody);
 
-            // Handle error response from Gemini
             if (root.has("error")) {
-                throw new RuntimeException("Gemini error: " + root.path("error").path("message").asText());
+                String errorMsg = root.path("error").isTextual()
+                        ? root.path("error").asText()
+                        : root.path("error").path("message").asText();
+                throw new RuntimeException("AI error: " + errorMsg);
             }
 
-            JsonNode candidates = root.path("candidates");
-            if (candidates.isMissingNode() || !candidates.isArray() || candidates.size() == 0) {
-                throw new RuntimeException("No candidates in Gemini response: " + responseBody);
-            }
-
-            return candidates.get(0)
-                    .path("content")
-                    .path("parts")
+            return root.path("choices")
                     .get(0)
-                    .path("text")
+                    .path("message")
+                    .path("content")
                     .asText();
 
         } catch (RuntimeException e) {
             throw e;
         } catch (Exception e) {
-            throw new RuntimeException("Gemini API call failed: " + e.getMessage());
+            throw new RuntimeException("AI API call failed: " + e.getMessage());
         }
     }
 }

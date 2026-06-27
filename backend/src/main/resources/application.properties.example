@@ -9,7 +9,7 @@ spring.jpa.open-in-view=false
 jwt.secret=your_jwt_secret_minimum_64_characters_long
 jwt.expiration=86400000
 
-gemini.api.key=your_gemini_api_key
+gemini.api.key=your_grok_key_here
 gemini.api.url=https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent
 
 frontend.url=http://localhost:5173

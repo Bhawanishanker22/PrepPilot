@@ -17,9 +17,9 @@ public class MockInterview {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "user_id", nullable = false)
-    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "password"})
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "password", "interviews"})
     private User user;
 
     @Column(name = "job_position", nullable = false, length = 100)
