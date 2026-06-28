@@ -52,7 +52,7 @@ public class SecurityConfig {
                 "http://localhost:5173",
                 "http://localhost:5174",
                 "https://preppilot.vercel.app",
-                "https://prep-pilot.vercel.app"
+                "https://preppilot-three.vercel.app"
         ));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
